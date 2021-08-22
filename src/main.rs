@@ -3,15 +3,20 @@ mod player;
 use player::{Player, player_movement_system};
 
 use bevy::prelude::*;
+use bevy::core::FixedTimestep;
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
-        .add_system(player_movement_system.system())
-        .add_system(die.system())
-        .add_system(take_damage.system())
-        .add_system(update_hud.system())
+        .add_system_set(
+            SystemSet::new()
+                .with_run_criteria(FixedTimestep::steps_per_second(60.0))
+                .with_system(player_movement_system.system())
+                .with_system(die.system())
+                .with_system(take_damage.system())
+                .with_system(update_hud.system())
+        )
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
 }

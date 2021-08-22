@@ -1,17 +1,18 @@
 use bevy::prelude::*;
 
 pub struct Player {
-    exp: u64,
+    pub exp: u64,
+    pub money: u64,
 }
 
 impl Player {
     pub fn new() -> Self {
         Player {
             exp: 0,
+            money: 0,
         }
     }
 
-    #[allow(unused)]
     pub fn level(&self) -> u64 {
         self.exp / 100
     }

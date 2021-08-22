@@ -19,7 +19,6 @@ fn main() {
 struct Skeleton;
 struct Health(u64);
 
-
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());

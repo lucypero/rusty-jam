@@ -1,5 +1,7 @@
 mod player;
+mod collision;
 
+use collision::{HitBoxEvent, take_damage};
 use player::{Player, player_movement_system};
 
 use bevy::prelude::*;
@@ -8,21 +10,25 @@ use bevy::core::FixedTimestep;
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .add_event::<HitBoxEvent>()
         .add_startup_system(setup.system())
         .add_system_set(
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::steps_per_second(60.0))
-                .with_system(player_movement_system.system())
-                .with_system(die.system())
-                .with_system(take_damage.system())
-                .with_system(update_hud.system())
+                .with_system(player_movement_system.system().label("actions"))
+                .with_system(die.system().label("actions"))
+                .with_system(take_damage.system().after("actions"))
+                .with_system(update_hud.system().after("actions"))
         )
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
 }
 
-struct Skeleton;
-struct Health(u64);
+pub struct Skeleton;
+pub struct Hurtbox {
+    pub size: Vec2,
+    health: u64
+}
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
@@ -36,7 +42,10 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, a
             ..Default::default()
         })
         .insert(Skeleton)
-        .insert(Health(700));
+        .insert(Hurtbox {
+            size: Vec2::new(30.0, 50.0),
+            health: 1,
+        });
     commands
         .spawn_bundle(SpriteBundle {
             material: materials.add(Color::rgb(0.5, 0.5, 1.0).into()),
@@ -45,7 +54,10 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, a
             ..Default::default()
         })
         .insert(Skeleton)
-        .insert(Health(500));
+        .insert(Hurtbox {
+            size: Vec2::new(30.0, 50.0),
+            health: 1,
+        });
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -55,7 +67,10 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, a
             ..Default::default()
         })
         .insert(Player::new())
-        .insert(Health(200));
+        .insert(Hurtbox {
+            size: Vec2::new(30.0, 50.0),
+            health: 200,
+        });
 
     commands.spawn_bundle(TextBundle {
         text: Text::with_section(
@@ -80,14 +95,8 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, a
     });
 }
 
-fn take_damage(mut entities: Query<&mut Health, With<Skeleton>>) {
-    for mut health in entities.iter_mut() {
-        health.0 = health.0.saturating_sub(1);
-    }
-}
-
-fn update_hud(player: Query<(&Health, &Player)>, mut text: Query<&mut Text>) {
-    if let Ok((Health(health), player)) = player.single() {
+fn update_hud(player: Query<(&Hurtbox, &Player)>, mut text: Query<&mut Text>) {
+    if let Ok((Hurtbox {health, ..}, player)) = player.single() {
         if let Ok(mut text) = text.single_mut() {
             text.sections[0].value = format!(
                 "Health: {}\nMoney: {}\nEXP: {}/{}\nLevel: {}",
@@ -101,8 +110,8 @@ fn update_hud(player: Query<(&Health, &Player)>, mut text: Query<&mut Text>) {
     }
 }
 
-fn die(mut commands: Commands, entities: Query<(Entity, &Health)>, mut player: Query<&mut Player>) {
-    for (entity, Health(health)) in entities.iter() {
+fn die(mut commands: Commands, entities: Query<(Entity, &Hurtbox)>, mut player: Query<&mut Player>) {
+    for (entity, Hurtbox { health , ..}) in entities.iter() {
         if *health <= 0 {
             commands.entity(entity).despawn_recursive();
             if let Ok(mut player) = player.single_mut() {

@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::math::vec3;
+use bevy::{math::vec2, prelude::*};
 
 use bevy::sprite::collide_aabb;
 use bevy::math::f32::Vec2;
@@ -33,7 +34,17 @@ pub fn debug_hurtboxes(
 ) {
     for (hittable, transform) in entities.iter() {
         let pos = transform.translation;
-        lines.line(pos, pos + hittable.size.extend(0.0), 0.0);
+
+        let p1 = pos;
+        let p2 = pos + vec3(hittable.size.x, 0., 0.0);
+        let p3 = pos + vec3(0., hittable.size.y, 0.0);
+        let p4 = pos + hittable.size.extend(0.0);
+
+        // lines.line(pos, pos + hittable.size.extend(0.0), 0.0);
+        lines.line(p1, p2, 0.);
+        lines.line(p2, p4, 0.);
+        lines.line(p1, p3, 0.);
+        lines.line(p3, p4, 0.);
     }
 }
 
@@ -43,6 +54,13 @@ pub fn debug_hitboxes(
 ) {
     for hitbox in hitbox_events.iter() {
         let pos = hitbox.position.extend(0.0);
-        lines.line(pos, pos + hitbox.size.extend(0.0), 0.0);
+        let p1 = pos;
+        let p2 = pos + vec3(hitbox.size.x, 0., 0.0);
+        let p3 = pos + vec3(0., hitbox.size.y, 0.0);
+        let p4 = pos + hitbox.size.extend(0.0);
+        lines.line(p1, p2, 0.);
+        lines.line(p2, p4, 0.);
+        lines.line(p1, p3, 0.);
+        lines.line(p3, p4, 0.);
     }
 }

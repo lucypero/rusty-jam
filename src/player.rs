@@ -1,19 +1,34 @@
 use bevy::prelude::*;
 
-pub struct Player;
+pub struct Player {
+    exp: u64,
+}
+
+impl Player {
+    pub fn new() -> Self {
+        Player {
+            exp: 0,
+        }
+    }
+
+    #[allow(unused)]
+    pub fn level(&self) -> u64 {
+        self.exp / 100
+    }
+}
 
 pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&Player, &mut Transform)>) {
     if let Ok((_player, mut transform)) = query.single_mut() {
         if keyboard_input.pressed(KeyCode::W) {
             transform.translation.y += 3f32;
         }
-        else if keyboard_input.pressed(KeyCode::S) {
+        if keyboard_input.pressed(KeyCode::S) {
             transform.translation.y -= 3f32;
         }
-        else if keyboard_input.pressed(KeyCode::A) {
+        if keyboard_input.pressed(KeyCode::A) {
             transform.translation.x -= 3f32;
         }
-        else if keyboard_input.pressed(KeyCode::D) {
+        if keyboard_input.pressed(KeyCode::D) {
             transform.translation.x += 3f32;
         }
     }

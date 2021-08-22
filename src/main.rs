@@ -9,10 +9,13 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_startup_system(setup.system())
         .add_system(player_movement_system.system())
+        .add_system(die.system())
+        .add_system(take_damage.system())
         .run();
 }
 
 struct Skeleton;
+struct Health(u64);
 
 
 fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
@@ -26,7 +29,8 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
             sprite: Sprite::new(Vec2::new(30.0, 50.0)),
             ..Default::default()
         })
-        .insert(Skeleton);
+        .insert(Skeleton)
+        .insert(Health(100));
 
     commands
         .spawn_bundle(SpriteBundle {
@@ -35,6 +39,20 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>) {
             sprite: Sprite::new(Vec2::new(40.0, 40.0)),
             ..Default::default()
         })
-        .insert(Player);
+        .insert(Player::new())
+        .insert(Health(200));
+}
 
+fn take_damage(mut entities: Query<&mut Health, With<Skeleton>>) {
+    for mut health in entities.iter_mut() {
+        health.0 = health.0.saturating_sub(1);
+    }
+}
+
+fn die(mut commands: Commands, entities: Query<(Entity, &Health)>) {
+    for (entity, Health(health)) in entities.iter() {
+        if *health <= 0 {
+            commands.entity(entity).despawn();
+        }
+    }
 }

@@ -68,6 +68,7 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
                 }
+                // TODO: activate slash on mouse click
                 if keyboard_input.pressed(KeyCode::Q) {
                     player.set_action(PlayerAction::Slash);
                 }

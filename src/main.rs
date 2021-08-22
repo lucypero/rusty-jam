@@ -1,15 +1,17 @@
 mod player;
 mod collision;
 
-use collision::{HitBoxEvent, take_damage};
+use collision::{HitBoxEvent, take_damage, debug_hurtboxes, debug_hitboxes};
 use player::{Player, player_movement_system};
 
 use bevy::prelude::*;
 use bevy::core::FixedTimestep;
+use bevy_prototype_debug_lines::*;
 
 fn main() {
     App::build()
         .add_plugins(DefaultPlugins)
+        .add_plugin(DebugLinesPlugin)
         .add_event::<HitBoxEvent>()
         .add_startup_system(setup.system())
         .add_system_set(
@@ -18,6 +20,8 @@ fn main() {
                 .with_system(player_movement_system.system().label("actions"))
                 .with_system(die.system().label("actions"))
                 .with_system(take_damage.system().after("actions"))
+                .with_system(debug_hurtboxes.system().after("actions"))
+                .with_system(debug_hitboxes.system().after("actions"))
                 .with_system(update_hud.system().after("actions"))
         )
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))

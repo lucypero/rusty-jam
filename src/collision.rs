@@ -9,10 +9,10 @@ use crate::{Hurtbox, Skeleton};
 pub struct HitBoxEvent {
     pub position: Vec2,
     pub size: Vec2,
-    // TODO: we can add fields to define what kind of damage, knockback etc. should occur
+    // TODO(rukai): we can add fields to define what kind of damage, knockback etc. should occur
 }
 
-// TODO: this should be made to process hitboxes from any entity type to any entity type. (not just skeletons)
+// TODO(rukai): this should be made to process hitboxes from any entity type to any entity type. (not just skeletons)
 pub fn take_damage(
     mut entities: Query<(&mut Hurtbox, &mut Transform), With<Skeleton>>,
     mut hitbox_events: EventReader<HitBoxEvent>,
@@ -26,7 +26,7 @@ pub fn take_damage(
     }
 }
 
-// TODO: only include these systems in debug mode
+// TODO(rukai): only include these systems in debug mode
 pub fn debug_hurtboxes(
     entities: Query<(&Hurtbox, &Transform), With<Skeleton>>,
     mut lines: ResMut<DebugLines>

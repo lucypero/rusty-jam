@@ -47,7 +47,7 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
     if let Ok((mut player, mut transform)) = query.single_mut() {
         match player.action {
             PlayerAction::Idle | PlayerAction::Walk => {
-                // TODO: rewrite to use a velocity component. That way we keep momentum when e.g. stopping/slashing/knockback etc.
+                // TODO(rukai): rewrite to use a velocity component. That way we keep momentum when e.g. stopping/slashing/knockback etc.
                 if keyboard_input.pressed(KeyCode::W) {
                     transform.translation.y += 3f32;
                     player.set_action(PlayerAction::Walk);
@@ -68,15 +68,15 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
                 }
-                // TODO: activate slash on mouse click
+                // TODO(rukai): activate slash on mouse click
                 if keyboard_input.pressed(KeyCode::Q) {
                     player.set_action(PlayerAction::Slash);
                 }
             }
             PlayerAction::Slash => {
-                // TODO: set velocity to go towards the mouse
+                // TODO(rukai): set velocity to go towards the mouse
                 if player.frame == 2 {
-                    // TODO: set hitbox position to be in front of the player towards the mouse
+                    // TODO(rukai): set hitbox position to be in front of the player towards the mouse
                     hitbox.send(HitBoxEvent {
                         position: transform.translation.truncate(),
                         size: Vec2::new(20.0, 20.0)

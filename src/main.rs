@@ -1,12 +1,22 @@
-mod player;
 mod collision;
+mod player;
 
-use collision::{HitBoxEvent, take_damage, debug_hurtboxes, debug_hitboxes};
-use player::{Player, player_movement_system};
+use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, HitBoxEvent};
+use player::{player_movement_system, Player};
 
-use bevy::prelude::*;
 use bevy::core::FixedTimestep;
+use bevy::prelude::*;
 use bevy_prototype_debug_lines::*;
+
+
+pub const ENEMY_SPEED: f32 = 1.0;
+pub const MOVEMENT_SPEED :f32 = 3.;
+pub const DASH_SPEED :f32 = 10.; // when dashing, vel *= dash_speed
+pub const DASH_DURATION :u32 = 6; // dash frame count
+pub const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
+pub const ENEMY_NORMAL_DAMAGE: i32 = 10; //damage that normal enemy attacks deal
+pub const DAMAGE_RECOIL_SPEED: f32 = 15.; // knockback force when u get damaged
+pub const DAMAGED_INVINSIBILITY_FRAMES : u32 = 5; // frames that u are invinsible after being hit
 
 fn main() {
     App::build()
@@ -18,23 +28,30 @@ fn main() {
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::steps_per_second(60.0))
                 .with_system(player_movement_system.system().label("actions"))
+                .with_system(enemy_movement_system.system().label("actions"))
                 .with_system(die.system().label("actions"))
                 .with_system(take_damage.system().after("actions"))
+                .with_system(player_take_damage.system().after("actions"))
                 .with_system(debug_hurtboxes.system().after("actions"))
                 .with_system(debug_hitboxes.system().after("actions"))
-                .with_system(update_hud.system().after("actions"))
+                .with_system(update_hud.system().after("actions")),
         )
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .run();
 }
 
 pub struct Skeleton;
+
 pub struct Hurtbox {
     pub size: Vec2,
-    health: u64
+    health: u64,
 }
 
-fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, asset_server: Res<AssetServer>) {
+fn setup(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
 
@@ -100,7 +117,7 @@ fn setup(mut commands: Commands, mut materials: ResMut<Assets<ColorMaterial>>, a
 }
 
 fn update_hud(player: Query<(&Hurtbox, &Player)>, mut text: Query<&mut Text>) {
-    if let Ok((Hurtbox {health, ..}, player)) = player.single() {
+    if let Ok((Hurtbox { health, .. }, player)) = player.single() {
         if let Ok(mut text) = text.single_mut() {
             text.sections[0].value = format!(
                 "Health: {}\nMoney: {}\nEXP: {}/{}\nLevel: {}",
@@ -114,8 +131,12 @@ fn update_hud(player: Query<(&Hurtbox, &Player)>, mut text: Query<&mut Text>) {
     }
 }
 
-fn die(mut commands: Commands, entities: Query<(Entity, &Hurtbox)>, mut player: Query<&mut Player>) {
-    for (entity, Hurtbox { health , ..}) in entities.iter() {
+fn die(
+    mut commands: Commands,
+    entities: Query<(Entity, &Hurtbox)>,
+    mut player: Query<&mut Player>,
+) {
+    for (entity, Hurtbox { health, .. }) in entities.iter() {
         if *health <= 0 {
             commands.entity(entity).despawn_recursive();
             if let Ok(mut player) = player.single_mut() {
@@ -124,4 +145,31 @@ fn die(mut commands: Commands, entities: Query<(Entity, &Hurtbox)>, mut player: 
             }
         }
     }
+}
+
+fn enemy_movement_system(
+    mut player_query: Query<(&mut Player, &Transform)>,
+    mut enemy_query: Query<(&mut Skeleton, &mut Transform), Without<Player>>,
+    // mut q: QuerySet<(
+    //     Query<(&Player, &Transform)>,
+    //     Query<(&Skeleton, &mut Transform), Without<Player>>
+    // )>
+) {
+    if let Ok((mut player, mut player_transform)) = player_query.single_mut() {
+        for (enemy, mut en_transform) in enemy_query.iter_mut() {
+            let mut vec = player_transform.translation - en_transform.translation;
+            vec = vec.normalize() * ENEMY_SPEED;
+            en_transform.translation += vec;
+        }
+    }
+
+    // if let Ok((mut player, mut player_transform)) = q.q0().single() {
+    //     for mut skeleton_t in q.q1_mut().iter_mut() {
+
+    //     }
+    // }
+
+
+
+
 }

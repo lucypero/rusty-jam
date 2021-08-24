@@ -1,11 +1,11 @@
-use bevy::math::vec3;
+use bevy::math::{Vec3Swizzles, vec3};
 use bevy::prelude::*;
 
-use bevy::sprite::collide_aabb;
 use bevy::math::f32::Vec2;
+use bevy::sprite::collide_aabb;
 use bevy_prototype_debug_lines::*;
 
-use crate::{Hurtbox, Skeleton};
+use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, Hurtbox, Skeleton, player::Player};
 
 pub struct HitBoxEvent {
     pub position: Vec2,
@@ -20,8 +20,38 @@ pub fn take_damage(
 ) {
     for hitbox in hitbox_events.iter() {
         for (mut hittable, transform) in entities.iter_mut() {
-            if collide_aabb::collide(transform.translation, hittable.size, hitbox.position.extend(0.0), hitbox.size).is_some() {
+            if collide_aabb::collide(
+                transform.translation,
+                hittable.size,
+                hitbox.position.extend(0.0),
+                hitbox.size,
+            )
+            .is_some()
+            {
                 hittable.health = hittable.health.saturating_sub(1);
+            }
+        }
+    }
+}
+
+pub fn player_take_damage(
+    mut skeleton_q: Query<(&mut Hurtbox, &mut Transform), With<Skeleton>>,
+    mut player_query: Query<(&mut Player, &mut Transform, &mut Hurtbox), Without<Skeleton>>,
+) {
+    if let Ok((mut player, mut player_transform, mut player_hb)) = player_query.single_mut() {
+        for (skel_hb, skel_trans) in skeleton_q.iter_mut() {
+            if !player.invinsible && collide_aabb::collide(
+                skel_trans.translation,
+                skel_hb.size,
+                player_transform.translation,
+                player_hb.size,
+            )
+            .is_some()
+            {
+                let mut vec = player_transform.translation - skel_trans.translation;
+                vec = vec.normalize() * DAMAGE_RECOIL_SPEED;
+
+                player.take_damage(&mut player_transform, ENEMY_NORMAL_DAMAGE, vec.xy());
             }
         }
     }
@@ -30,7 +60,7 @@ pub fn take_damage(
 // TODO(rukai): only include these systems in debug mode
 pub fn debug_hurtboxes(
     entities: Query<(&Hurtbox, &Transform), With<Skeleton>>,
-    mut lines: ResMut<DebugLines>
+    mut lines: ResMut<DebugLines>,
 ) {
     for (hittable, transform) in entities.iter() {
         let size = hittable.size;
@@ -40,10 +70,7 @@ pub fn debug_hurtboxes(
     }
 }
 
-pub fn debug_hitboxes(
-    mut hitbox_events: EventReader<HitBoxEvent>,
-    mut lines: ResMut<DebugLines>
-) {
+pub fn debug_hitboxes(mut hitbox_events: EventReader<HitBoxEvent>, mut lines: ResMut<DebugLines>) {
     for hitbox in hitbox_events.iter() {
         let pos = hitbox.position.extend(0.0);
         let size = hitbox.size;

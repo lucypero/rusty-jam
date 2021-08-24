@@ -1,11 +1,12 @@
 use bevy::{math::{vec2, vec3}, prelude::*};
-use crate::collision::HitBoxEvent;
+use crate::{DAMAGED_INVINSIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent};
 
 pub enum PlayerAction {
     Idle,
     Walk,
     Slash,
     Dash,
+    Damaged
 }
 
 pub enum Facing {
@@ -15,31 +16,30 @@ pub enum Facing {
     Right
 }
 
-const MOVEMENT_SPEED :f32 = 3.;
-const DASH_SPEED :f32 = 10.; // when dashing, vel *= dash_speed
-const DASH_DURATION :u32 = 6; // dash frame count
-const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
-
 pub struct Player {
     pub frame: u64,
     pub frame_since_last_cooldown: u64,
     pub action: PlayerAction,
     pub facing: Facing,
+    pub hp: i32,
     pub exp: u64,
     pub money: u64,
-    pub vel: Vec2
+    pub vel: Vec2,
+    pub invinsible: bool,
 }
 
 impl Player {
     pub fn new() -> Self {
         Player {
+            hp: 1000,
             frame: 0,
             frame_since_last_cooldown: 0,
             action: PlayerAction::Idle,
             facing: Facing::Right,
             exp: 0,
             money: 0,
-            vel: vec2(0.,0.)
+            vel: vec2(0.,0.),
+            invinsible: false,
         }
     }
 
@@ -51,6 +51,12 @@ impl Player {
         self.frame = 0;
         self.action = action;
     }
+
+    pub fn take_damage(&mut self, t: &mut Transform, damage: i32, recoil_vec: Vec2) {
+        self.set_action(PlayerAction::Damaged);
+        self.vel = recoil_vec;
+        self.invinsible = true;
+    }
 }
 
 pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&mut Player, &mut Transform)>, mut hitbox: EventWriter<HitBoxEvent>) {
@@ -58,7 +64,6 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
         match player.action {
             PlayerAction::Idle | PlayerAction::Walk => {
                 let mut walking = false;
-                // TODO(rukai): rewrite to use a velocity component. That way we keep momentum when e.g. stopping/slashing/knockback etc.
 
                 if keyboard_input.pressed(KeyCode::W) &&
                    keyboard_input.pressed(KeyCode::A) {
@@ -132,7 +137,6 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                 }
             }
             PlayerAction::Slash => {
-                // TODO(rukai): set velocity to go towards the mouse
                 if player.frame == 2 {
                     // TODO(rukai): set hitbox position to be in front of the player towards the mouse
                     hitbox.send(HitBoxEvent {
@@ -147,17 +151,23 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
             PlayerAction::Dash => {
 
                 player.frame_since_last_cooldown = 0;
+                player.invinsible = true;
 
                 if player.frame == 1 {
                     player.vel *= DASH_SPEED;
                 }
 
-                println!("vel: {}", player.vel);
-
                 if player.frame > DASH_DURATION as u64{
+                    player.invinsible = false;
                     player.set_action(PlayerAction::Idle);
                 }
 
+            },
+            PlayerAction::Damaged => {
+                if player.frame > DAMAGED_INVINSIBILITY_FRAMES as u64 {
+                    player.invinsible = false;
+                    player.set_action(PlayerAction::Idle);
+                }
             }
         }
         //apply vel and friction

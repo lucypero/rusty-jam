@@ -17,9 +17,12 @@ pub enum Facing {
 
 const MOVEMENT_SPEED :f32 = 3.;
 const DASH_SPEED :f32 = 10.; // when dashing, vel *= dash_speed
+const DASH_DURATION :u32 = 6; // dash frame count
+const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
 
 pub struct Player {
     pub frame: u64,
+    pub frame_since_last_cooldown: u64,
     pub action: PlayerAction,
     pub facing: Facing,
     pub exp: u64,
@@ -31,6 +34,7 @@ impl Player {
     pub fn new() -> Self {
         Player {
             frame: 0,
+            frame_since_last_cooldown: 0,
             action: PlayerAction::Idle,
             facing: Facing::Right,
             exp: 0,
@@ -118,8 +122,10 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                 if keyboard_input.pressed(KeyCode::Q) {
                     player.set_action(PlayerAction::Slash);
                 }
-                if keyboard_input.pressed(KeyCode::Space) {
-                    player.set_action(PlayerAction::Dash);
+                if keyboard_input.just_pressed(KeyCode::Space) {
+                    if player.frame_since_last_cooldown > DASH_COOLDOWN_TIME as u64{
+                        player.set_action(PlayerAction::Dash);
+                    }
                 }
                 if !walking {
                     player.vel = vec2(0.,0.);
@@ -140,13 +146,15 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
             }
             PlayerAction::Dash => {
 
+                player.frame_since_last_cooldown = 0;
+
                 if player.frame == 1 {
                     player.vel *= DASH_SPEED;
                 }
 
                 println!("vel: {}", player.vel);
 
-                if player.frame > 6 {
+                if player.frame > DASH_DURATION as u64{
                     player.set_action(PlayerAction::Idle);
                 }
 
@@ -156,5 +164,6 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
         transform.translation += vec3(player.vel.x, player.vel.y, 0.0);
 
         player.frame += 1;
+        player.frame_since_last_cooldown += 1;
     }
 }

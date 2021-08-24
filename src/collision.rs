@@ -1,5 +1,5 @@
 use bevy::math::vec3;
-use bevy::{math::vec2, prelude::*};
+use bevy::prelude::*;
 
 use bevy::sprite::collide_aabb;
 use bevy::math::f32::Vec2;
@@ -33,18 +33,10 @@ pub fn debug_hurtboxes(
     mut lines: ResMut<DebugLines>
 ) {
     for (hittable, transform) in entities.iter() {
+        let size = hittable.size;
         let pos = transform.translation;
 
-        let p1 = pos;
-        let p2 = pos + vec3(hittable.size.x, 0., 0.0);
-        let p3 = pos + vec3(0., hittable.size.y, 0.0);
-        let p4 = pos + hittable.size.extend(0.0);
-
-        // lines.line(pos, pos + hittable.size.extend(0.0), 0.0);
-        lines.line(p1, p2, 0.);
-        lines.line(p2, p4, 0.);
-        lines.line(p1, p3, 0.);
-        lines.line(p3, p4, 0.);
+        draw_box(&mut lines, pos, size);
     }
 }
 
@@ -54,13 +46,20 @@ pub fn debug_hitboxes(
 ) {
     for hitbox in hitbox_events.iter() {
         let pos = hitbox.position.extend(0.0);
-        let p1 = pos;
-        let p2 = pos + vec3(hitbox.size.x, 0., 0.0);
-        let p3 = pos + vec3(0., hitbox.size.y, 0.0);
-        let p4 = pos + hitbox.size.extend(0.0);
-        lines.line(p1, p2, 0.);
-        lines.line(p2, p4, 0.);
-        lines.line(p1, p3, 0.);
-        lines.line(p3, p4, 0.);
+        let size = hitbox.size;
+        draw_box(&mut lines, pos, size);
     }
+}
+
+fn draw_box(lines: &mut DebugLines, pos: Vec3, size: Vec2) {
+    let size = size.extend(0.0);
+    let pos = pos - size / 2.0;
+    let p1 = pos;
+    let p2 = pos + vec3(size.x, 0., 0.0);
+    let p3 = pos + vec3(0., size.y, 0.0);
+    let p4 = pos + size;
+    lines.line(p1, p2, 0.);
+    lines.line(p2, p4, 0.);
+    lines.line(p1, p3, 0.);
+    lines.line(p3, p4, 0.);
 }

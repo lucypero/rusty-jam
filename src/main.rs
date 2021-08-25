@@ -14,9 +14,9 @@ pub const MOVEMENT_SPEED :f32 = 3.;
 pub const DASH_SPEED :f32 = 10.; // when dashing, vel *= dash_speed
 pub const DASH_DURATION :u32 = 6; // dash frame count
 pub const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
-pub const ENEMY_NORMAL_DAMAGE: i32 = 10; //damage that normal enemy attacks deal
+pub const ENEMY_NORMAL_DAMAGE: u64 = 10; //damage that normal enemy attacks deal
 pub const DAMAGE_RECOIL_SPEED: f32 = 15.; // knockback force when u get damaged
-pub const DAMAGED_INVINSIBILITY_FRAMES : u32 = 5; // frames that u are invinsible after being hit
+pub const DAMAGED_INVINCIBILITY_FRAMES : u32 = 5; // frames that u are invincible after being hit
 
 fn main() {
     App::build()
@@ -155,8 +155,8 @@ fn enemy_movement_system(
     //     Query<(&Skeleton, &mut Transform), Without<Player>>
     // )>
 ) {
-    if let Ok((mut player, mut player_transform)) = player_query.single_mut() {
-        for (enemy, mut en_transform) in enemy_query.iter_mut() {
+    if let Ok((_player, player_transform)) = player_query.single_mut() {
+        for (_enemy, mut en_transform) in enemy_query.iter_mut() {
             let mut vec = player_transform.translation - en_transform.translation;
             vec = vec.normalize() * ENEMY_SPEED;
             en_transform.translation += vec;

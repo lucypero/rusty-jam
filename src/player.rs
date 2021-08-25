@@ -1,5 +1,5 @@
 use bevy::{math::{vec2, vec3}, prelude::*};
-use crate::{DAMAGED_INVINSIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent};
+use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent};
 
 pub enum PlayerAction {
     Idle,
@@ -25,7 +25,7 @@ pub struct Player {
     pub exp: u64,
     pub money: u64,
     pub vel: Vec2,
-    pub invinsible: bool,
+    pub invincible: bool,
 }
 
 impl Player {
@@ -39,7 +39,7 @@ impl Player {
             exp: 0,
             money: 0,
             vel: vec2(0.,0.),
-            invinsible: false,
+            invincible: false,
         }
     }
 
@@ -52,10 +52,10 @@ impl Player {
         self.action = action;
     }
 
-    pub fn take_damage(&mut self, t: &mut Transform, damage: i32, recoil_vec: Vec2) {
+    pub fn take_damage(&mut self, recoil_vec: Vec2) {
         self.set_action(PlayerAction::Damaged);
         self.vel = recoil_vec;
-        self.invinsible = true;
+        self.invincible = true;
     }
 }
 
@@ -96,28 +96,24 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                     walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::W) {
-                    // transform.translation.y += 3f32;
                     player.vel = vec2(0., MOVEMENT_SPEED);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Up;
                     walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::S) {
-                    // transform.translation.y -= 3f32;
                     player.vel = vec2(0., -MOVEMENT_SPEED);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Down;
                     walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::A) {
-                    // transform.translation.x -= 3f32;
                     player.vel = vec2(-MOVEMENT_SPEED, 0.);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Left;
                     walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::D) {
-                    // transform.translation.x += 3f32;
                     player.vel = vec2(MOVEMENT_SPEED, 0.);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
@@ -149,23 +145,22 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                 }
             }
             PlayerAction::Dash => {
-
                 player.frame_since_last_cooldown = 0;
-                player.invinsible = true;
+                player.invincible = true;
 
                 if player.frame == 1 {
                     player.vel *= DASH_SPEED;
                 }
 
                 if player.frame > DASH_DURATION as u64{
-                    player.invinsible = false;
+                    player.invincible = false;
                     player.set_action(PlayerAction::Idle);
                 }
 
             },
             PlayerAction::Damaged => {
-                if player.frame > DAMAGED_INVINSIBILITY_FRAMES as u64 {
-                    player.invinsible = false;
+                if player.frame > DAMAGED_INVINCIBILITY_FRAMES as u64 {
+                    player.invincible = false;
                     player.set_action(PlayerAction::Idle);
                 }
             }

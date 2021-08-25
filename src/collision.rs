@@ -38,9 +38,9 @@ pub fn player_take_damage(
     mut skeleton_q: Query<(&mut Hurtbox, &mut Transform), With<Skeleton>>,
     mut player_query: Query<(&mut Player, &mut Transform, &mut Hurtbox), Without<Skeleton>>,
 ) {
-    if let Ok((mut player, mut player_transform, mut player_hb)) = player_query.single_mut() {
+    if let Ok((mut player, player_transform, mut player_hb)) = player_query.single_mut() {
         for (skel_hb, skel_trans) in skeleton_q.iter_mut() {
-            if !player.invinsible && collide_aabb::collide(
+            if !player.invincible && collide_aabb::collide(
                 skel_trans.translation,
                 skel_hb.size,
                 player_transform.translation,
@@ -51,7 +51,8 @@ pub fn player_take_damage(
                 let mut vec = player_transform.translation - skel_trans.translation;
                 vec = vec.normalize() * DAMAGE_RECOIL_SPEED;
 
-                player.take_damage(&mut player_transform, ENEMY_NORMAL_DAMAGE, vec.xy());
+                player.take_damage(vec.xy());
+                player_hb.health = player_hb.health.saturating_sub(ENEMY_NORMAL_DAMAGE);
             }
         }
     }

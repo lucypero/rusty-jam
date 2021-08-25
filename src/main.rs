@@ -1,8 +1,10 @@
 mod collision;
 mod player;
+mod mouse;
 
 use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, HitBoxEvent};
 use player::{player_movement_system, Player};
+use mouse::{MouseState, mouse_system};
 
 use bevy::core::FixedTimestep;
 use bevy::prelude::*;
@@ -27,7 +29,8 @@ fn main() {
         .add_system_set(
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::steps_per_second(60.0))
-                .with_system(player_movement_system.system().label("actions"))
+                .with_system(mouse_system.system().label("input"))
+                .with_system(player_movement_system.system().label("actions").after("input"))
                 .with_system(enemy_movement_system.system().label("actions"))
                 .with_system(die.system().label("actions"))
                 .with_system(take_damage.system().after("actions"))
@@ -37,8 +40,11 @@ fn main() {
                 .with_system(update_hud.system().after("actions")),
         )
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+        .insert_resource(MouseState::default())
         .run();
 }
+
+pub struct MainCamera;
 
 pub struct Skeleton;
 
@@ -52,7 +58,7 @@ fn setup(
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
 ) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d()).insert(MainCamera);
     commands.spawn_bundle(UiCameraBundle::default());
 
     commands
@@ -168,8 +174,4 @@ fn enemy_movement_system(
 
     //     }
     // }
-
-
-
-
 }

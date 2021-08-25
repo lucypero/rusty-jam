@@ -1,10 +1,11 @@
 use bevy::{math::{vec2, vec3}, prelude::*};
 use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent};
+use crate::mouse::MouseState;
 
 pub enum PlayerAction {
     Idle,
     Walk,
-    Slash,
+    Slash { angle: f32 },
     Dash,
     Damaged
 }
@@ -59,7 +60,13 @@ impl Player {
     }
 }
 
-pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Query<(&mut Player, &mut Transform)>, mut hitbox: EventWriter<HitBoxEvent>) {
+pub fn player_movement_system(
+    keyboard_input: Res<Input<KeyCode>>,
+    mouse_button_input: Res<Input<MouseButton>>,
+    mouse: Res<MouseState>,
+    mut query: Query<(&mut Player, &mut Transform)>,
+    mut hitbox: EventWriter<HitBoxEvent>,
+) {
     if let Ok((mut player, mut transform)) = query.single_mut() {
         match player.action {
             PlayerAction::Idle | PlayerAction::Walk => {
@@ -119,12 +126,14 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                     player.facing = Facing::Right;
                     walking = true;
                 }
-                // TODO(rukai): activate slash on mouse click
-                if keyboard_input.pressed(KeyCode::Q) {
-                    player.set_action(PlayerAction::Slash);
+                if mouse_button_input.just_pressed(MouseButton::Left) {
+                    if let Some(angle) = mouse.angle_from_location_to_mouse(transform.translation.truncate()) {
+                        player.set_action(PlayerAction::Slash { angle });
+                        player.vel = vec2(angle.cos() * 3.0, angle.sin() * 3.0);
+                    }
                 }
                 if keyboard_input.just_pressed(KeyCode::Space) {
-                    if player.frame_since_last_cooldown > DASH_COOLDOWN_TIME as u64{
+                    if player.frame_since_last_cooldown > DASH_COOLDOWN_TIME as u64 {
                         player.set_action(PlayerAction::Dash);
                     }
                 }
@@ -132,12 +141,11 @@ pub fn player_movement_system(keyboard_input: Res<Input<KeyCode>>, mut query: Qu
                     player.vel = vec2(0.,0.);
                 }
             }
-            PlayerAction::Slash => {
-                if player.frame == 2 {
-                    // TODO(rukai): set hitbox position to be in front of the player towards the mouse
+            PlayerAction::Slash { angle } => {
+                if player.frame > 2 && player.frame < 10 {
                     hitbox.send(HitBoxEvent {
-                        position: transform.translation.truncate(),
-                        size: Vec2::new(20.0, 20.0)
+                        position: transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 40.0,
+                        size: Vec2::new(30.0, 30.0)
                     });
                 }
                 if player.frame > 20 {

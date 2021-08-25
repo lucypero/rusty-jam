@@ -6,7 +6,7 @@ pub enum PlayerAction {
     Idle,
     Walk,
     Slash { angle: f32 },
-    Dash,
+    Dash { angle: f32 },
     Damaged
 }
 
@@ -70,14 +70,11 @@ pub fn player_movement_system(
     if let Ok((mut player, mut transform)) = query.single_mut() {
         match player.action {
             PlayerAction::Idle | PlayerAction::Walk => {
-                let mut walking = false;
-
                 if keyboard_input.pressed(KeyCode::W) &&
                    keyboard_input.pressed(KeyCode::A) {
                     player.vel = vec2(-1., 1.).normalize() * MOVEMENT_SPEED;
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Left;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::W) &&
                    keyboard_input.pressed(KeyCode::D) {
@@ -85,7 +82,6 @@ pub fn player_movement_system(
                     player.vel = vec2(1., 1.).normalize() * MOVEMENT_SPEED;
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::S) &&
                    keyboard_input.pressed(KeyCode::A) {
@@ -93,78 +89,71 @@ pub fn player_movement_system(
                     player.vel = vec2(-1., -1.).normalize() * MOVEMENT_SPEED;
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Left;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::S) &&
                    keyboard_input.pressed(KeyCode::D) {
                     player.vel = vec2(1., -1.).normalize() * MOVEMENT_SPEED;
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::W) {
                     player.vel = vec2(0., MOVEMENT_SPEED);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Up;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::S) {
                     player.vel = vec2(0., -MOVEMENT_SPEED);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Down;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::A) {
                     player.vel = vec2(-MOVEMENT_SPEED, 0.);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Left;
-                    walking = true;
                 }
                 else if keyboard_input.pressed(KeyCode::D) {
                     player.vel = vec2(MOVEMENT_SPEED, 0.);
                     player.set_action(PlayerAction::Walk);
                     player.facing = Facing::Right;
-                    walking = true;
                 }
                 if mouse_button_input.just_pressed(MouseButton::Left) {
                     if let Some(angle) = mouse.angle_from_location_to_mouse(transform.translation.truncate()) {
                         player.set_action(PlayerAction::Slash { angle });
-                        player.vel = vec2(angle.cos() * 3.0, angle.sin() * 3.0);
+                        player.vel = vec2(angle.cos() * 4.0, angle.sin() * 4.0);
                     }
                 }
                 if keyboard_input.just_pressed(KeyCode::Space) {
                     if player.frame_since_last_cooldown > DASH_COOLDOWN_TIME as u64 {
-                        player.set_action(PlayerAction::Dash);
+                        if let Some(angle) = mouse.angle_from_location_to_mouse(transform.translation.truncate()) {
+                            player.set_action(PlayerAction::Dash { angle });
+                        }
                     }
-                }
-                if !walking {
-                    player.vel = vec2(0.,0.);
                 }
             }
             PlayerAction::Slash { angle } => {
-                if player.frame > 2 && player.frame < 10 {
+                if player.frame < 10 {
+                    player.vel = vec2(angle.cos() * 3.0, angle.sin() * 3.0);
                     hitbox.send(HitBoxEvent {
                         position: transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 40.0,
                         size: Vec2::new(30.0, 30.0)
                     });
                 }
-                if player.frame > 20 {
+                if player.frame > 17 {
                     player.set_action(PlayerAction::Idle);
                 }
             }
-            PlayerAction::Dash => {
+            PlayerAction::Dash { angle } => {
                 player.frame_since_last_cooldown = 0;
                 player.invincible = true;
 
-                if player.frame == 1 {
-                    player.vel *= DASH_SPEED;
+                if player.frame < 4 {
+                    player.vel = Vec2::new(angle.cos(), angle.sin()) * DASH_SPEED;
                 }
 
                 if player.frame > DASH_DURATION as u64{
                     player.invincible = false;
                     player.set_action(PlayerAction::Idle);
                 }
-
             },
             PlayerAction::Damaged => {
                 if player.frame > DAMAGED_INVINCIBILITY_FRAMES as u64 {
@@ -174,6 +163,7 @@ pub fn player_movement_system(
             }
         }
         //apply vel and friction
+        player.vel *= 0.8;
         transform.translation += vec3(player.vel.x, player.vel.y, 0.0);
 
         player.frame += 1;

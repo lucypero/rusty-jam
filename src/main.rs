@@ -13,7 +13,7 @@ use bevy_prototype_debug_lines::*;
 
 pub const ENEMY_SPEED: f32 = 1.0;
 pub const MOVEMENT_SPEED :f32 = 3.;
-pub const DASH_SPEED :f32 = 10.; // when dashing, vel *= dash_speed
+pub const DASH_SPEED :f32 = 30.; // when dashing, vel *= dash_speed
 pub const DASH_DURATION :u32 = 6; // dash frame count
 pub const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
 pub const ENEMY_NORMAL_DAMAGE: u64 = 10; //damage that normal enemy attacks deal

@@ -11,9 +11,11 @@ use bevy::prelude::*;
 use bevy_prototype_debug_lines::*;
 
 
+pub const PLAYER_SPRITE_ROWS: u32 = 2; // TODO: Surely these are redundant and can be derived from the image width / 50...?
+pub const PLAYER_SPRITE_COLS: u32 = 2;
 pub const ENEMY_SPEED: f32 = 1.0;
-pub const MOVEMENT_SPEED :f32 = 3.;
-pub const DASH_SPEED :f32 = 30.; // when dashing, vel *= dash_speed
+pub const MOVEMENT_SPEED :f32 = 6.;
+pub const DASH_SPEED :f32 = 50.; // when dashing, vel *= dash_speed
 pub const DASH_DURATION :u32 = 6; // dash frame count
 pub const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
 pub const ENEMY_NORMAL_DAMAGE: u64 = 10; //damage that normal enemy attacks deal
@@ -88,7 +90,7 @@ fn setup(
         });
 
     let player_texture = asset_server.load("graphics/player.png");
-    let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), 2, 2);
+    let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), PLAYER_SPRITE_COLS as usize, PLAYER_SPRITE_ROWS as usize);
     commands
         .spawn_bundle(SpriteSheetBundle {
             transform: Transform::from_scale(Vec3::splat(3.0)),

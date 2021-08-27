@@ -57,6 +57,7 @@ fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d()).insert(MainCamera);
     commands.spawn_bundle(UiCameraBundle::default());
@@ -86,11 +87,12 @@ fn setup(
             health: 1,
         });
 
+    let player_texture = asset_server.load("graphics/player.png");
+    let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), 2, 2);
     commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.add(Color::rgb(0.9, 0.2, 0.2).into()),
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            sprite: Sprite::new(Vec2::new(40.0, 40.0)),
+        .spawn_bundle(SpriteSheetBundle {
+            transform: Transform::from_scale(Vec3::splat(3.0)),
+            texture_atlas: texture_atlases.add(player_atlas),
             ..Default::default()
         })
         .insert(Player::new())

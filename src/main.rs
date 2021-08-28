@@ -11,7 +11,7 @@ use collision::{
 use mouse::{mouse_system, MouseState};
 use player::{player_system, Player, PlayerBundle};
 use shopkeeper::{shopkeeper_system, ShopkeeperBundle};
-use skeleton::{skeleton_system, SkeletonBundle};
+use skeleton::skeleton_system;
 
 use bevy::core::FixedTimestep;
 use bevy::prelude::*;

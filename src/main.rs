@@ -302,6 +302,10 @@ fn update_hud(
                 100,
                 player.level()
             );
+            text.sections[0].value = format!(
+                "Health: {}",
+                health,
+            );
         }
     }
 }

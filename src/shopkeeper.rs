@@ -58,10 +58,10 @@ pub fn shopkeeper_system(
     mut commands: Commands,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut player_query: Query<(&mut Player, &Transform)>,
-    mut enemy_query: Query<(&mut Shopkeeper, &mut Hurtbox, &mut Transform), Without<Player>>,
+    mut shopkeeper_query: Query<(&mut Shopkeeper, &mut Hurtbox, &mut Transform), Without<Player>>,
 ) {
     if let Ok((_player, player_transform)) = player_query.single_mut() {
-        for (mut shopkeeper, mut hurtbox, transform) in enemy_query.iter_mut() {
+        for (mut shopkeeper, mut hurtbox, transform) in shopkeeper_query.iter_mut() {
             if hurtbox.is_hit {
                 shopkeeper.set_action(ShopkeeperAction::Damaged);
                 hurtbox.is_hit = false;
@@ -80,24 +80,24 @@ pub fn shopkeeper_system(
                         shopkeeper.set_action(ShopkeeperAction::SpawnMinions);
                     }
                 }
+                // spawn minions perpindular to the player
                 ShopkeeperAction::SpawnMinions => {
                     hurtbox.invincible = true;
-                    // spawn minions perpindular to the player
-                    let angle = transform.translation.angle_between(player_transform.translation); // TODO: angle_between docs say Vec3(0, 0, 0) is bad...?
-                    println!("{}", angle);
+                    let angle = difference.angle_between(Vec3::new(1.0, 0.0, 0.0)); // TODO: angle_between docs say Vec3(0, 0, 0) is bad...?
+                    let perpindicular = angle + std::f32::consts::FRAC_PI_2;
                     if shopkeeper.frame % 2 == 0 {
-                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * 20.0;
+                        hurtbox.vel += Vec2::new(perpindicular.cos(), perpindicular.sin()) * 20.0;
                     } else {
-                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * -20.0;
+                        hurtbox.vel -= Vec2::new(perpindicular.cos(), perpindicular.sin()) * 20.0;
                     }
 
                     if shopkeeper.frame == 50 {
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 500.0));
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 300.0));
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 100.0));
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -100.0));
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -300.0));
-                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -500.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * 500.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * 300.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * 100.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * -100.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * -300.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(perpindicular.cos(), perpindicular.sin()) * -500.0));
                     }
                     if shopkeeper.frame > 60 {
                         hurtbox.invincible = false;

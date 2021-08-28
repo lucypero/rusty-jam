@@ -6,7 +6,7 @@ mod mouse;
 
 use collision::{debug_hitboxes, debug_hurtboxes, take_damage, physics_system, die_system, HitBoxEvent, Hurtbox};
 use player::{player_system, Player, PlayerBundle};
-use skeleton::{skeleton_system, SkeletonBundle};
+use skeleton::skeleton_system;
 use shopkeeper::{shopkeeper_system, ShopkeeperBundle};
 use mouse::{MouseState, mouse_system};
 
@@ -60,13 +60,6 @@ fn setup(
     commands.spawn_bundle(OrthographicCameraBundle::new_2d()).insert(MainCamera);
     commands.spawn_bundle(UiCameraBundle::default());
 
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(450.0, 550.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(50.0, 50.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(-50.0, -400.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(250.0, 400.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(-50.0, -1400.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(350.0, -500.0)));
-    commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(-50.0, 200.0)));
     commands.spawn_bundle(ShopkeeperBundle::new(&mut materials, Vec2::new(400.0, 0.0)));
 
     let player_texture = asset_server.load("graphics/player.png");

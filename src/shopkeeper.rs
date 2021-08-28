@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use crate::player::Player;
 use crate::collision::{Hurtbox, Team};
+use crate::skeleton::SkeletonBundle;
 
 #[derive(Bundle)]
 pub struct ShopkeeperBundle {
@@ -37,8 +38,8 @@ impl ShopkeeperBundle {
 pub enum ShopkeeperAction {
     Idle,
     Walk,
-    Damaged
-    // SomeAttack,
+    Damaged,
+    SpawnMinions,
 }
 
 pub struct Shopkeeper {
@@ -54,6 +55,8 @@ impl Shopkeeper {
 }
 
 pub fn shopkeeper_system(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     mut player_query: Query<(&mut Player, &Transform)>,
     mut enemy_query: Query<(&mut Shopkeeper, &mut Hurtbox, &mut Transform), Without<Player>>,
 ) {
@@ -73,6 +76,33 @@ pub fn shopkeeper_system(
                 }
                 ShopkeeperAction::Walk => {
                     hurtbox.vel = difference.truncate().normalize() * 1.5;
+                    if shopkeeper.frame > 300 {
+                        shopkeeper.set_action(ShopkeeperAction::SpawnMinions);
+                    }
+                }
+                ShopkeeperAction::SpawnMinions => {
+                    hurtbox.invincible = true;
+                    // spawn minions perpindular to the player
+                    let angle = transform.translation.angle_between(player_transform.translation); // TODO: angle_between docs say Vec3(0, 0, 0) is bad...?
+                    println!("{}", angle);
+                    if shopkeeper.frame % 2 == 0 {
+                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * 20.0;
+                    } else {
+                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * -20.0;
+                    }
+
+                    if shopkeeper.frame == 50 {
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 500.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 300.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 100.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -100.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -300.0));
+                        commands.spawn_bundle(SkeletonBundle::new(&mut materials, transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * -500.0));
+                    }
+                    if shopkeeper.frame > 60 {
+                        hurtbox.invincible = false;
+                        shopkeeper.set_action(ShopkeeperAction::Walk);
+                    }
                 }
                 ShopkeeperAction::Damaged => {
                     if shopkeeper.frame > 10 {

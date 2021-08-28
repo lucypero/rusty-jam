@@ -5,7 +5,8 @@ use bevy::math::f32::Vec2;
 use bevy::sprite::collide_aabb;
 use bevy_prototype_debug_lines::*;
 
-use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, Hurtbox, Skeleton, player::Player};
+use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, Hurtbox, player::Player};
+use crate::skeleton::Skeleton;
 
 pub struct HitBoxEvent {
     pub position: Vec2,

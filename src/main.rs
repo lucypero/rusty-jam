@@ -1,11 +1,13 @@
 mod collision;
 mod player;
 mod skeleton;
+mod shopkeeper;
 mod mouse;
 
 use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, HitBoxEvent};
 use player::{player_system, Player, PlayerBundle};
-use skeleton::{skeleton_system, Skeleton, SkeletonBundle};
+use skeleton::{skeleton_system, SkeletonBundle};
+use shopkeeper::{shopkeeper_system, ShopkeeperBundle};
 use mouse::{MouseState, mouse_system};
 
 use bevy::core::FixedTimestep;
@@ -34,6 +36,7 @@ fn main() {
                 .with_system(mouse_system.system().label("input"))
                 .with_system(player_system.system().label("actions").after("input"))
                 .with_system(skeleton_system.system().label("actions"))
+                .with_system(shopkeeper_system.system().label("actions"))
                 .with_system(die.system().label("actions"))
                 .with_system(take_damage.system().after("actions"))
                 .with_system(player_take_damage.system().after("actions"))
@@ -70,6 +73,7 @@ fn setup(
     commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(-50.0, -1400.0)));
     commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(350.0, -500.0)));
     commands.spawn_bundle(SkeletonBundle::new(&mut materials, Vec2::new(-50.0, 200.0)));
+    commands.spawn_bundle(ShopkeeperBundle::new(&mut materials, Vec2::new(400.0, 0.0)));
 
     let player_texture = asset_server.load("graphics/player.png");
     let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), PLAYER_SPRITE_COLS as usize, PLAYER_SPRITE_ROWS as usize);

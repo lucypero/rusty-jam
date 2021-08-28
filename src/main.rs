@@ -41,7 +41,9 @@ fn main() {
                 .with_system(take_damage.system().after("physics"))
                 .with_system(debug_hurtboxes.system().after("physics"))
                 .with_system(debug_hitboxes.system().after("physics"))
-                .with_system(update_hud.system().after("physics")),
+                .with_system(update_hud.system().after("physics"))
+                .with_system(game_over.system())
+                .with_system(victory.system()),
         )
         //.insert_resource(ClearColor(Color::rgb(0.6941, 0.2431, 0.3254)))
         .insert_resource(ClearColor(Color::rgb(0.2196, 0.7176, 0.3921)))
@@ -53,19 +55,12 @@ pub struct MainCamera;
 
 fn setup(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    materials: ResMut<Assets<ColorMaterial>>,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>
+    texture_atlases: ResMut<Assets<TextureAtlas>>
 ) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d()).insert(MainCamera);
     commands.spawn_bundle(UiCameraBundle::default());
-
-    commands.spawn_bundle(ShopkeeperBundle::new(&mut materials, Vec2::new(400.0, 0.0)));
-
-    let player_texture = asset_server.load("graphics/player.png");
-    let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), PLAYER_SPRITE_COLS as usize, PLAYER_SPRITE_ROWS as usize);
-    let player_atlas = texture_atlases.add(player_atlas);
-    commands.spawn_bundle(PlayerBundle::new(player_atlas));
 
     commands.spawn_bundle(TextBundle {
         text: Text::with_section(
@@ -87,10 +82,95 @@ fn setup(
             ..Default::default()
         },
         ..Default::default()
-    });
+    }).insert(HUD);
+
+    commands.spawn_bundle(TextBundle {
+        text: Text::with_section(
+            "A harmless box...",
+            TextStyle {
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font_size: 100.0,
+                color: Color::rgb(0.0, 0.0, 0.0),
+            },
+            Default::default(),
+        ),
+        style: Style {
+            position_type: PositionType::Absolute,
+            position: Rect {
+                bottom: Val::Percent(10.0),
+                left: Val::Percent(5.0),
+                ..Default::default()
+            },
+            ..Default::default()
+        },
+        ..Default::default()
+    }).insert(TextBox);
+
+    spawn_entities(commands, materials, asset_server, texture_atlases);
 }
 
-fn update_hud(player: Query<(&Hurtbox, &Player)>, mut text: Query<&mut Text>) {
+fn spawn_entities(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>
+) {
+    commands.spawn_bundle(ShopkeeperBundle::new(&mut materials, Vec2::new(400.0, 0.0)));
+
+    let player_texture = asset_server.load("graphics/player.png");
+    let player_atlas = TextureAtlas::from_grid(player_texture, Vec2::new(50.0, 50.0), PLAYER_SPRITE_COLS as usize, PLAYER_SPRITE_ROWS as usize);
+    let player_atlas = texture_atlases.add(player_atlas);
+    commands.spawn_bundle(PlayerBundle::new(player_atlas));
+}
+
+struct HUD;
+struct TextBox;
+
+fn game_over(
+    player: Query<&Player>,
+    mut text: Query<&mut Text, With<TextBox>>,
+    keyboard_input: Res<Input<KeyCode>>,
+    entities: Query<Entity, With<Hurtbox>>,
+
+    // setup
+    mut commands: Commands,
+    materials: ResMut<Assets<ColorMaterial>>,
+    asset_server: Res<AssetServer>,
+    texture_atlases: ResMut<Assets<TextureAtlas>>
+) {
+    if player.single().is_err() {
+        if let Ok(mut text) = text.single_mut() {
+            text.sections[0].value = format!("Game Over!\nPress 'n' to retry.");
+            if keyboard_input.just_pressed(KeyCode::N) {
+                for entity in entities.iter() {
+                    commands.entity(entity).despawn_recursive();
+                }
+                spawn_entities(commands, materials, asset_server, texture_atlases);
+            }
+        }
+    }
+    else if keyboard_input.get_pressed().count() > 0 {
+        if let Ok(mut text) = text.single_mut() {
+            text.sections[0].value = format!("");
+        }
+    }
+}
+
+fn victory(
+    player: Query<&Hurtbox, Without<Player>>,
+    mut text: Query<&mut Text, With<TextBox>>
+) {
+    if player.iter().count() == 0 {
+        if let Ok(mut text) = text.single_mut() {
+            text.sections[0].value = format!("A winner is you!");
+        }
+    }
+}
+
+fn update_hud(
+    player: Query<(&Hurtbox, &Player)>,
+    mut text: Query<&mut Text, With<HUD>>
+) {
     if let Ok((Hurtbox { health, .. }, player)) = player.single() {
         if let Ok(mut text) = text.single_mut() {
             text.sections[0].value = format!(

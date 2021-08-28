@@ -91,8 +91,8 @@ pub fn shopkeeper_system(
                 ShopkeeperAction::Blast => {
                     hurtbox.invincible = true;
                     let angle = difference.angle_between(Vec3::new(1.0, 0.0, 0.0)); // TODO: angle_between docs say Vec3(0, 0, 0) is bad...?
-                    if shopkeeper.frame < 10 {
-                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * -20.0;
+                    if shopkeeper.frame < 8 {
+                        hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * -10.0;
                     }
 
                     if shopkeeper.frame > 55 && shopkeeper.frame < 100 {

@@ -58,7 +58,7 @@ pub fn shopkeeper_system(
     mut enemy_query: Query<(&mut Shopkeeper, &mut Hurtbox, &mut Transform), Without<Player>>,
 ) {
     if let Ok((_player, player_transform)) = player_query.single_mut() {
-        for (mut shopkeeper, mut hurtbox, mut transform) in enemy_query.iter_mut() {
+        for (mut shopkeeper, mut hurtbox, transform) in enemy_query.iter_mut() {
             if hurtbox.is_hit {
                 shopkeeper.set_action(ShopkeeperAction::Damaged);
                 hurtbox.is_hit = false;
@@ -72,7 +72,7 @@ pub fn shopkeeper_system(
                     }
                 }
                 ShopkeeperAction::Walk => {
-                    transform.translation += difference.normalize() * 1.5;
+                    hurtbox.vel = difference.truncate().normalize() * 1.5;
                 }
                 ShopkeeperAction::Damaged => {
                     if shopkeeper.frame > 10 {

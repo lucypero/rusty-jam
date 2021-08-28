@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::player::Player;
-use crate::collision::{Hurtbox, Team};
+use crate::collision::{Hurtbox, Team, CanHitTeam, HitBoxEvent};
 
 #[derive(Bundle)]
 pub struct SkeletonBundle {
@@ -54,9 +54,10 @@ impl Skeleton {
 pub fn skeleton_system(
     mut player_query: Query<(&mut Player, &Transform)>,
     mut enemy_query: Query<(&mut Skeleton, &mut Hurtbox, &mut Transform), Without<Player>>,
+    mut hitbox: EventWriter<HitBoxEvent>,
 ) {
     if let Ok((_player, player_transform)) = player_query.single_mut() {
-        for (mut skeleton, mut hurtbox, mut en_transform) in enemy_query.iter_mut() {
+        for (mut skeleton, mut hurtbox, transform) in enemy_query.iter_mut() {
             if hurtbox.is_hit {
                 skeleton.set_action(SkeletonAction::Damaged);
                 hurtbox.is_hit = false;
@@ -65,9 +66,15 @@ pub fn skeleton_system(
             match &skeleton.action {
                 SkeletonAction::Walk => {
                     hurtbox.invincible = false;
-                    let mut vec = player_transform.translation - en_transform.translation;
-                    vec = vec.normalize() * 1.5;
-                    en_transform.translation += vec;
+                    let difference = player_transform.translation - transform.translation;
+                    hurtbox.vel = difference.truncate().normalize() * 1.5;
+                    hitbox.send(HitBoxEvent {
+                        position: transform.translation.truncate(),
+                        size: Vec2::new(50.0, 90.0),
+                        damage: 2,
+                        knockback: 30.0,
+                        can_hit: CanHitTeam::Player,
+                    });
                 }
                 SkeletonAction::Damaged => {
                     if skeleton.frame > 15 {

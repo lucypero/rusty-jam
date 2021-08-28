@@ -16,7 +16,7 @@ impl PlayerBundle {
             player: Player::new(),
             hurtbox: Hurtbox {
                 size: Vec2::new(30.0, 50.0),
-                health: 200,
+                health: 20,
                 team: Team::Player,
                 is_hit: false,
                 invincible: false,

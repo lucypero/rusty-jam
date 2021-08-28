@@ -6,7 +6,6 @@ use bevy::sprite::collide_aabb;
 use bevy_prototype_debug_lines::*;
 
 use crate::player::Player;
-use crate::skeleton::Skeleton;
 
 pub enum Team {
     Player,
@@ -23,7 +22,7 @@ pub struct Hurtbox {
 }
 
 pub enum CanHitTeam {
-    //Player,
+    Player,
     Enemy,
     //All,
 }
@@ -31,6 +30,9 @@ impl CanHitTeam {
     fn can_hit(&self, team: &Team) -> bool {
         match (self, team) {
             (CanHitTeam::Enemy, Team::Enemy) => true,
+            (CanHitTeam::Player, Team::Player) => true,
+            //(CanHitTeam::All, Team::Player) => true,
+            //(CanHitTeam::All, Team::Enemy) => true,
             _ => false,
         }
     }
@@ -95,14 +97,14 @@ pub fn die_system(
 
 // TODO(rukai): only include these systems in debug mode
 pub fn debug_hurtboxes(
-    entities: Query<(&Hurtbox, &Transform), With<Skeleton>>,
+    entities: Query<(&Hurtbox, &Transform), Without<Player>>,
     mut lines: ResMut<DebugLines>,
 ) {
     for (hittable, transform) in entities.iter() {
         let size = hittable.size;
         let pos = transform.translation;
 
-        draw_box(&mut lines, pos, size);
+        draw_box(&mut lines, pos, size, Color::YELLOW);
     }
 }
 
@@ -110,19 +112,19 @@ pub fn debug_hitboxes(mut hitbox_events: EventReader<HitBoxEvent>, mut lines: Re
     for hitbox in hitbox_events.iter() {
         let pos = hitbox.position.extend(0.0);
         let size = hitbox.size;
-        draw_box(&mut lines, pos, size);
+        draw_box(&mut lines, pos, size, Color::RED);
     }
 }
 
-fn draw_box(lines: &mut DebugLines, pos: Vec3, size: Vec2) {
+fn draw_box(lines: &mut DebugLines, pos: Vec3, size: Vec2, color: Color) {
     let size = size.extend(0.0);
     let pos = pos - size / 2.0;
     let p1 = pos;
-    let p2 = pos + vec3(size.x, 0., 0.0);
-    let p3 = pos + vec3(0., size.y, 0.0);
+    let p2 = pos + vec3(size.x, 0.0, 0.0);
+    let p3 = pos + vec3(0.0, size.y, 0.0);
     let p4 = pos + size;
-    lines.line(p1, p2, 0.);
-    lines.line(p2, p4, 0.);
-    lines.line(p1, p3, 0.);
-    lines.line(p3, p4, 0.);
+    lines.line_colored(p1, p2, 0.0, color);
+    lines.line_colored(p2, p4, 0.0, color);
+    lines.line_colored(p1, p3, 0.0, color);
+    lines.line_colored(p3, p4, 0.0, color);
 }

@@ -1,7 +1,30 @@
 use bevy::{math::{vec2, vec3}, prelude::*};
-use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent};
+use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent, Hurtbox};
 use crate::mouse::MouseState;
 
+#[derive(Bundle)]
+pub struct PlayerBundle {
+    player: Player,
+    hurtbox: Hurtbox,
+    #[bundle]
+    sprite: SpriteSheetBundle
+}
+impl PlayerBundle {
+    pub fn new(texture_atlas: Handle<TextureAtlas>) -> Self {
+        Self {
+            player: Player::new(),
+            hurtbox: Hurtbox {
+                size: Vec2::new(30.0, 50.0),
+                health: 200,
+            },
+            sprite: SpriteSheetBundle {
+                transform: Transform::from_scale(Vec3::splat(3.0)),
+                texture_atlas: texture_atlas,
+                ..Default::default()
+            }
+        }
+    }
+}
 
 pub enum PlayerAction {
     Idle,
@@ -81,8 +104,8 @@ impl Player {
         &mut self,
         keyboard_input: &Input<KeyCode>,
     ) -> bool {
-        if 
-            keyboard_input.pressed(KeyCode::W) || keyboard_input.pressed(KeyCode::S) || 
+        if
+            keyboard_input.pressed(KeyCode::W) || keyboard_input.pressed(KeyCode::S) ||
             keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::D)
         {
             self.set_action(PlayerAction::Walk);
@@ -96,8 +119,8 @@ impl Player {
         &mut self,
         keyboard_input: &Input<KeyCode>,
     ) -> bool {
-        if 
-            !keyboard_input.pressed(KeyCode::W) && !keyboard_input.pressed(KeyCode::S) && 
+        if
+            !keyboard_input.pressed(KeyCode::W) && !keyboard_input.pressed(KeyCode::S) &&
             !keyboard_input.pressed(KeyCode::A) && !keyboard_input.pressed(KeyCode::D)
         {
             self.set_action(PlayerAction::Idle);
@@ -258,7 +281,7 @@ impl Player {
     }
 }
 
-pub fn player_movement_system(
+pub fn player_system(
     keyboard_input: Res<Input<KeyCode>>,
     mouse_button_input: Res<Input<MouseButton>>,
     mouse: Res<MouseState>,

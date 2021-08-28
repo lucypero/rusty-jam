@@ -1,4 +1,4 @@
-use bevy::{math::{vec2, vec3}, prelude::*};
+use bevy::{math::vec2, prelude::*};
 use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED};
 use crate::mouse::MouseState;
 use crate::collision::{HitBoxEvent, Team, CanHitTeam, Hurtbox};
@@ -18,6 +18,9 @@ impl PlayerBundle {
                 size: Vec2::new(30.0, 50.0),
                 health: 200,
                 team: Team::Player,
+                is_hit: false,
+                invincible: false,
+                vel: Vec2::new(0.0, 0.0)
             },
             sprite: SpriteSheetBundle {
                 transform: Transform::from_scale(Vec3::splat(3.0)),
@@ -51,8 +54,6 @@ pub struct Player {
     pub hp: i32,
     pub exp: u64,
     pub money: u64,
-    pub vel: Vec2,
-    pub invincible: bool,
 }
 
 impl Player {
@@ -65,8 +66,6 @@ impl Player {
             facing: Facing::Right,
             exp: 0,
             money: 0,
-            vel: vec2(0.,0.),
-            invincible: false,
         }
     }
 
@@ -94,12 +93,6 @@ impl Player {
                 Facing::Left
             }
         }
-    }
-
-    pub fn take_damage(&mut self, recoil_vec: Vec2) {
-        self.set_action(PlayerAction::Damaged);
-        self.vel = recoil_vec;
-        self.invincible = true;
     }
 
     pub fn check_enter_walk(
@@ -137,12 +130,13 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform
     ) -> bool {
         if mouse_button_input.just_pressed(MouseButton::Left) {
             if let Some(angle) = mouse.angle_from_location_to_mouse(transform.translation.truncate()) {
                 self.set_action(PlayerAction::Slash { angle });
-                self.vel = vec2(angle.cos() * 4.0, angle.sin() * 4.0);
+                hurtbox.vel = vec2(angle.cos() * 4.0, angle.sin() * 4.0);
                 self.set_facing_by_angle(angle);
             }
             false
@@ -164,9 +158,10 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform
     ) {
-        if self.check_actions(&keyboard_input, &mouse, &mouse_button_input, transform) && self.check_enter_walk(&keyboard_input) {
+        if self.check_actions(&keyboard_input, &mouse, &mouse_button_input, hurtbox, transform) && self.check_enter_walk(&keyboard_input) {
             if self.frame > 90 {
                 self.set_action(PlayerAction::Idle);
             }
@@ -178,43 +173,44 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform
     ) {
-        if self.check_actions(&keyboard_input, &mouse, &mouse_button_input, transform) && self.check_leave_walk(&keyboard_input) {
+        if self.check_actions(&keyboard_input, mouse, mouse_button_input, hurtbox, transform) && self.check_leave_walk(&keyboard_input) {
             if keyboard_input.pressed(KeyCode::W) &&
                 keyboard_input.pressed(KeyCode::A) {
-                self.vel = vec2(-1., 1.).normalize() * MOVEMENT_SPEED;
+                hurtbox.vel = vec2(-1., 1.).normalize() * MOVEMENT_SPEED;
                 self.facing = Facing::Left;
             }
             else if keyboard_input.pressed(KeyCode::W) &&
                 keyboard_input.pressed(KeyCode::D) {
-                self.vel = vec2(1., 1.).normalize() * MOVEMENT_SPEED;
+                hurtbox.vel = vec2(1., 1.).normalize() * MOVEMENT_SPEED;
                 self.facing = Facing::Right;
             }
             else if keyboard_input.pressed(KeyCode::S) &&
                 keyboard_input.pressed(KeyCode::A) {
-                self.vel = vec2(-1., -1.).normalize() * MOVEMENT_SPEED;
+                hurtbox.vel = vec2(-1., -1.).normalize() * MOVEMENT_SPEED;
                 self.facing = Facing::Left;
             }
             else if keyboard_input.pressed(KeyCode::S) &&
                 keyboard_input.pressed(KeyCode::D) {
-                self.vel = vec2(1., -1.).normalize() * MOVEMENT_SPEED;
+                hurtbox.vel = vec2(1., -1.).normalize() * MOVEMENT_SPEED;
                 self.facing = Facing::Right;
             }
             else if keyboard_input.pressed(KeyCode::W) {
-                self.vel = vec2(0., MOVEMENT_SPEED);
+                hurtbox.vel = vec2(0., MOVEMENT_SPEED);
                 self.facing = Facing::Up;
             }
             else if keyboard_input.pressed(KeyCode::S) {
-                self.vel = vec2(0., -MOVEMENT_SPEED);
+                hurtbox.vel = vec2(0., -MOVEMENT_SPEED);
                 self.facing = Facing::Down;
             }
             else if keyboard_input.pressed(KeyCode::A) {
-                self.vel = vec2(-MOVEMENT_SPEED, 0.);
+                hurtbox.vel = vec2(-MOVEMENT_SPEED, 0.);
                 self.facing = Facing::Left;
             }
             else if keyboard_input.pressed(KeyCode::D) {
-                self.vel = vec2(MOVEMENT_SPEED, 0.);
+                hurtbox.vel = vec2(MOVEMENT_SPEED, 0.);
                 self.facing = Facing::Right;
             }
 
@@ -230,22 +226,23 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform,
         hitbox: &mut EventWriter<HitBoxEvent>,
     ) {
         if self.frame < 10 {
-            self.vel = vec2(angle.cos() * 8.0, angle.sin() * 8.0);
+            hurtbox.vel = vec2(angle.cos() * 8.0, angle.sin() * 8.0);
             hitbox.send(HitBoxEvent {
-                position: transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 40.0,
-                size: Vec2::new(30.0, 30.0),
+                position: transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 70.0,
+                size: Vec2::new(60.0, 60.0),
                 damage: 2,
-                knockback: 2.0,
+                knockback: 30.0,
                 can_hit: CanHitTeam::Enemy,
             });
         }
         if self.frame > 17 {
             self.set_action(PlayerAction::Idle);
-            self.idle_action(&keyboard_input, &mouse, &mouse_button_input, transform);
+            self.idle_action(&keyboard_input, mouse, mouse_button_input, hurtbox, transform);
         }
     }
 
@@ -255,19 +252,20 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform,
     ) {
         self.frame_since_last_cooldown = 0;
-        self.invincible = true;
+        hurtbox.invincible = true;
 
         if self.frame < 4 {
-            self.vel = Vec2::new(angle.cos(), angle.sin()) * DASH_SPEED;
+            hurtbox.vel = Vec2::new(angle.cos(), angle.sin()) * DASH_SPEED;
         }
 
         if self.frame > DASH_DURATION as u64{
-            self.invincible = false;
+            hurtbox.invincible = false;
             self.set_action(PlayerAction::Idle);
-            self.idle_action(&keyboard_input, &mouse, &mouse_button_input, transform);
+            self.idle_action(&keyboard_input, mouse, mouse_button_input, hurtbox, transform);
         }
     }
 
@@ -276,12 +274,13 @@ impl Player {
         keyboard_input: &Input<KeyCode>,
         mouse: &MouseState,
         mouse_button_input: &Input<MouseButton>,
+        hurtbox: &mut Hurtbox,
         transform: &mut Transform,
     ) {
         if self.frame > DAMAGED_INVINCIBILITY_FRAMES as u64 {
-            self.invincible = false;
+            hurtbox.invincible = false;
             self.set_action(PlayerAction::Idle);
-            self.idle_action(&keyboard_input, &mouse, &mouse_button_input, transform);
+            self.idle_action(&keyboard_input, mouse, mouse_button_input, hurtbox, transform);
         }
     }
 }
@@ -290,25 +289,31 @@ pub fn player_system(
     keyboard_input: Res<Input<KeyCode>>,
     mouse_button_input: Res<Input<MouseButton>>,
     mouse: Res<MouseState>,
-    mut query: Query<(&mut Player, &mut Transform, &mut TextureAtlasSprite)>,
+    mut query: Query<(&mut Player, &mut Hurtbox, &mut Transform, &mut TextureAtlasSprite)>,
     mut hitbox: EventWriter<HitBoxEvent>,
 ) {
-    if let Ok((mut player, mut transform, mut sprite)) = query.single_mut() {
+    if let Ok((mut player, mut hurtbox, mut transform, mut sprite)) = query.single_mut() {
+        if hurtbox.is_hit {
+            player.set_action(PlayerAction::Damaged);
+            hurtbox.is_hit = false;
+        }
+
         match player.action {
             PlayerAction::Idle => {
-                player.idle_action(&keyboard_input, &mouse, &mouse_button_input, &mut transform);
+                // TODO: lets create a context struct which holds all the args so we dont have argument soup
+                player.idle_action(&keyboard_input, &mouse, &mouse_button_input, &mut hurtbox, &mut transform);
             }
             PlayerAction::Walk => {
-                player.walk_action(&keyboard_input, &mouse, &mouse_button_input, &mut transform);
+                player.walk_action(&keyboard_input, &mouse, &mouse_button_input, &mut hurtbox, &mut transform);
             }
             PlayerAction::Slash { angle } => {
-                player.slash_action(angle, &keyboard_input, &mouse, &mouse_button_input, &mut transform, &mut hitbox);
+                player.slash_action(angle, &keyboard_input, &mouse, &mouse_button_input, &mut hurtbox, &mut transform, &mut hitbox);
             }
             PlayerAction::Dash { angle } => {
-                player.dash_action(angle, &keyboard_input, &mouse, &mouse_button_input, &mut transform);
+                player.dash_action(angle, &keyboard_input, &mouse, &mouse_button_input, &mut hurtbox, &mut transform);
             },
             PlayerAction::Damaged => {
-                player.damaged_action(&keyboard_input, &mouse, &mouse_button_input, &mut transform);
+                player.damaged_action(&keyboard_input, &mouse, &mouse_button_input, &mut hurtbox, &mut transform);
             }
         }
 
@@ -347,10 +352,6 @@ pub fn player_system(
                 set_sprite_flip_from_facing(&mut sprite, facing);
             }
         }
-
-        //apply vel and friction
-        player.vel *= 0.8;
-        transform.translation += vec3(player.vel.x, player.vel.y, 0.0);
 
         player.frame += 1;
         player.frame_since_last_cooldown += 1;

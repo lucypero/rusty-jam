@@ -4,7 +4,7 @@ mod skeleton;
 mod shopkeeper;
 mod mouse;
 
-use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, die_system, HitBoxEvent, Hurtbox};
+use collision::{debug_hitboxes, debug_hurtboxes, take_damage, physics_system, die_system, HitBoxEvent, Hurtbox};
 use player::{player_system, Player, PlayerBundle};
 use skeleton::{skeleton_system, SkeletonBundle};
 use shopkeeper::{shopkeeper_system, ShopkeeperBundle};
@@ -20,7 +20,6 @@ pub const MOVEMENT_SPEED :f32 = 6.;
 pub const DASH_SPEED :f32 = 50.; // when dashing, vel *= dash_speed
 pub const DASH_DURATION :u32 = 6; // dash frame count
 pub const DASH_COOLDOWN_TIME : u32 = 60; //frames u need to wait betw dashes
-pub const ENEMY_NORMAL_DAMAGE: u64 = 10; //damage that normal enemy attacks deal
 pub const DAMAGE_RECOIL_SPEED: f32 = 15.; // knockback force when u get damaged
 pub const DAMAGED_INVINCIBILITY_FRAMES : u32 = 5; // frames that u are invincible after being hit
 
@@ -38,11 +37,11 @@ fn main() {
                 .with_system(skeleton_system.system().label("actions"))
                 .with_system(shopkeeper_system.system().label("actions"))
                 .with_system(die_system.system().label("actions"))
-                .with_system(take_damage.system().after("actions"))
-                .with_system(player_take_damage.system().after("actions"))
-                .with_system(debug_hurtboxes.system().after("actions"))
-                .with_system(debug_hitboxes.system().after("actions"))
-                .with_system(update_hud.system().after("actions")),
+                .with_system(physics_system.system().label("physics").after("actions"))
+                .with_system(take_damage.system().after("physics"))
+                .with_system(debug_hurtboxes.system().after("physics"))
+                .with_system(debug_hitboxes.system().after("physics"))
+                .with_system(update_hud.system().after("physics")),
         )
         //.insert_resource(ClearColor(Color::rgb(0.6941, 0.2431, 0.3254)))
         .insert_resource(ClearColor(Color::rgb(0.2196, 0.7176, 0.3921)))

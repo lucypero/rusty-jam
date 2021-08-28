@@ -20,6 +20,9 @@ impl ShopkeeperBundle {
                 size: Vec2::new(30.0, 50.0),
                 health: 50,
                 team: Team::Enemy,
+                is_hit: false,
+                invincible: false,
+                vel: Vec2::new(0.0, 0.0)
             },
             sprite: SpriteBundle {
                 material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),
@@ -34,8 +37,8 @@ impl ShopkeeperBundle {
 pub enum ShopkeeperAction {
     Idle,
     Walk,
+    Damaged
     // SomeAttack,
-    // Damaged
 }
 
 pub struct Shopkeeper {
@@ -52,10 +55,14 @@ impl Shopkeeper {
 
 pub fn shopkeeper_system(
     mut player_query: Query<(&mut Player, &Transform)>,
-    mut enemy_query: Query<(&mut Shopkeeper, &mut Transform), Without<Player>>,
+    mut enemy_query: Query<(&mut Shopkeeper, &mut Hurtbox, &mut Transform), Without<Player>>,
 ) {
     if let Ok((_player, player_transform)) = player_query.single_mut() {
-        for (mut shopkeeper, mut transform) in enemy_query.iter_mut() {
+        for (mut shopkeeper, mut hurtbox, mut transform) in enemy_query.iter_mut() {
+            if hurtbox.is_hit {
+                shopkeeper.set_action(ShopkeeperAction::Damaged);
+                hurtbox.is_hit = false;
+            }
 
             let difference = player_transform.translation - transform.translation;
             match shopkeeper.action {
@@ -66,6 +73,12 @@ pub fn shopkeeper_system(
                 }
                 ShopkeeperAction::Walk => {
                     transform.translation += difference.normalize() * 1.5;
+                }
+                ShopkeeperAction::Damaged => {
+                    if shopkeeper.frame > 10 {
+                        hurtbox.invincible = false;
+                        shopkeeper.set_action(ShopkeeperAction::Walk);
+                    }
                 }
             }
 

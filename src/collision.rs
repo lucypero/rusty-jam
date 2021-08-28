@@ -1,11 +1,11 @@
-use bevy::math::{Vec3Swizzles, vec3};
+use bevy::math::vec3;
 use bevy::prelude::*;
 
 use bevy::math::f32::Vec2;
 use bevy::sprite::collide_aabb;
 use bevy_prototype_debug_lines::*;
 
-use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, player::Player};
+use crate::player::Player;
 use crate::skeleton::Skeleton;
 
 pub enum Team {
@@ -17,6 +17,9 @@ pub struct Hurtbox {
     pub team: Team,
     pub size: Vec2,
     pub health: u64,
+    pub is_hit: bool,
+    pub invincible: bool,
+    pub vel: Vec2, // TODO: maybe split it into a Physics component? not sure if its worth it.
 }
 
 pub enum CanHitTeam {
@@ -41,48 +44,36 @@ pub struct HitBoxEvent {
     pub can_hit: CanHitTeam,
 }
 
-// TODO(rukai): this should be made to process hitboxes from any entity type to any entity type. (not just skeletons)
 pub fn take_damage(
-    mut entities: Query<(&mut Hurtbox, &mut Transform), With<Skeleton>>,
+    mut entities: Query<(&mut Hurtbox, &mut Transform)>,
     mut hitbox_events: EventReader<HitBoxEvent>,
 ) {
     for hitbox in hitbox_events.iter() {
         for (mut hurtbox, transform) in entities.iter_mut() {
-            if hitbox.can_hit.can_hit(&hurtbox.team) && collide_aabb::collide(
-                transform.translation,
-                hurtbox.size,
-                hitbox.position.extend(0.0),
-                hitbox.size,
-            )
-            .is_some()
+            if hitbox.can_hit.can_hit(&hurtbox.team) && !hurtbox.invincible &&
+                collide_aabb::collide(
+                    transform.translation,
+                    hurtbox.size,
+                    hitbox.position.extend(0.0),
+                    hitbox.size,
+                )
+                .is_some()
             {
+                hurtbox.is_hit = true;
+                hurtbox.invincible = true;
                 hurtbox.health = hurtbox.health.saturating_sub(hitbox.damage);
+                let direction = transform.translation.truncate() - hitbox.position;
+                hurtbox.vel = direction.normalize() * hitbox.knockback;
             }
         }
     }
 }
 
-pub fn player_take_damage(
-    mut skeleton_q: Query<(&mut Hurtbox, &mut Transform), With<Skeleton>>,
-    mut player_query: Query<(&mut Player, &mut Transform, &mut Hurtbox), Without<Skeleton>>,
-) {
-    if let Ok((mut player, player_transform, mut player_hb)) = player_query.single_mut() {
-        for (skel_hb, skel_trans) in skeleton_q.iter_mut() {
-            if !player.invincible && collide_aabb::collide(
-                skel_trans.translation,
-                skel_hb.size,
-                player_transform.translation,
-                player_hb.size,
-            )
-            .is_some()
-            {
-                let mut vec = player_transform.translation - skel_trans.translation;
-                vec = vec.normalize() * DAMAGE_RECOIL_SPEED;
-
-                player.take_damage(vec.xy());
-                player_hb.health = player_hb.health.saturating_sub(ENEMY_NORMAL_DAMAGE);
-            }
-        }
+pub fn physics_system(mut entities: Query<(&mut Hurtbox, &mut Transform)>) {
+    for (mut hurtbox, mut transform) in entities.iter_mut() {
+        //apply vel and friction
+        transform.translation += hurtbox.vel.extend(0.0);
+        hurtbox.vel *= 0.8;
     }
 }
 

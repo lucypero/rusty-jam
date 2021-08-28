@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::player::Player;
-use crate::Hurtbox;
+use crate::collision::{Hurtbox, Team};
 
 pub const ENEMY_SPEED: f32 = 1.0;
 
@@ -17,7 +17,8 @@ impl SkeletonBundle {
             skeleton: Skeleton,
             hurtbox: Hurtbox {
                 size: Vec2::new(30.0, 50.0),
-                health: 1,
+                health: 10,
+                team: Team::Enemy,
             },
             sprite: SpriteBundle {
                 material: materials.add(Color::rgb(0.5, 0.5, 1.0).into()),

@@ -5,13 +5,40 @@ use bevy::math::f32::Vec2;
 use bevy::sprite::collide_aabb;
 use bevy_prototype_debug_lines::*;
 
-use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, Hurtbox, player::Player};
+use crate::{DAMAGE_RECOIL_SPEED, ENEMY_NORMAL_DAMAGE, player::Player};
 use crate::skeleton::Skeleton;
+
+pub enum Team {
+    Player,
+    Enemy,
+}
+
+pub struct Hurtbox {
+    pub team: Team,
+    pub size: Vec2,
+    pub health: u64,
+}
+
+pub enum CanHitTeam {
+    //Player,
+    Enemy,
+    //All,
+}
+impl CanHitTeam {
+    fn can_hit(&self, team: &Team) -> bool {
+        match (self, team) {
+            (CanHitTeam::Enemy, Team::Enemy) => true,
+            _ => false,
+        }
+    }
+}
 
 pub struct HitBoxEvent {
     pub position: Vec2,
     pub size: Vec2,
-    // TODO(rukai): we can add fields to define what kind of damage, knockback etc. should occur
+    pub damage: u64,
+    pub knockback: f32,
+    pub can_hit: CanHitTeam,
 }
 
 // TODO(rukai): this should be made to process hitboxes from any entity type to any entity type. (not just skeletons)
@@ -20,16 +47,16 @@ pub fn take_damage(
     mut hitbox_events: EventReader<HitBoxEvent>,
 ) {
     for hitbox in hitbox_events.iter() {
-        for (mut hittable, transform) in entities.iter_mut() {
-            if collide_aabb::collide(
+        for (mut hurtbox, transform) in entities.iter_mut() {
+            if hitbox.can_hit.can_hit(&hurtbox.team) && collide_aabb::collide(
                 transform.translation,
-                hittable.size,
+                hurtbox.size,
                 hitbox.position.extend(0.0),
                 hitbox.size,
             )
             .is_some()
             {
-                hittable.health = hittable.health.saturating_sub(1);
+                hurtbox.health = hurtbox.health.saturating_sub(hitbox.damage);
             }
         }
     }
@@ -54,6 +81,22 @@ pub fn player_take_damage(
 
                 player.take_damage(vec.xy());
                 player_hb.health = player_hb.health.saturating_sub(ENEMY_NORMAL_DAMAGE);
+            }
+        }
+    }
+}
+
+pub fn die_system(
+    mut commands: Commands,
+    entities: Query<(Entity, &Hurtbox)>,
+    mut player: Query<&mut Player>,
+) {
+    for (entity, Hurtbox { health, .. }) in entities.iter() {
+        if *health <= 0 {
+            commands.entity(entity).despawn_recursive();
+            if let Ok(mut player) = player.single_mut() {
+                player.exp += 100;
+                player.money += 200;
             }
         }
     }

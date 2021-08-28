@@ -1,6 +1,7 @@
 use bevy::{math::{vec2, vec3}, prelude::*};
-use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED, collision::HitBoxEvent, Hurtbox};
+use crate::{DAMAGED_INVINCIBILITY_FRAMES, DASH_COOLDOWN_TIME, DASH_DURATION, DASH_SPEED, MOVEMENT_SPEED};
 use crate::mouse::MouseState;
+use crate::collision::{HitBoxEvent, Team, CanHitTeam, Hurtbox};
 
 #[derive(Bundle)]
 pub struct PlayerBundle {
@@ -16,6 +17,7 @@ impl PlayerBundle {
             hurtbox: Hurtbox {
                 size: Vec2::new(30.0, 50.0),
                 health: 200,
+                team: Team::Player,
             },
             sprite: SpriteSheetBundle {
                 transform: Transform::from_scale(Vec3::splat(3.0)),
@@ -235,7 +237,10 @@ impl Player {
             self.vel = vec2(angle.cos() * 8.0, angle.sin() * 8.0);
             hitbox.send(HitBoxEvent {
                 position: transform.translation.truncate() + Vec2::new(angle.cos(), angle.sin()) * 40.0,
-                size: Vec2::new(30.0, 30.0)
+                size: Vec2::new(30.0, 30.0),
+                damage: 2,
+                knockback: 2.0,
+                can_hit: CanHitTeam::Enemy,
             });
         }
         if self.frame > 17 {

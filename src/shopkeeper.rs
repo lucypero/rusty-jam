@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use crate::player::Player;
-use crate::Hurtbox;
+use crate::collision::{Hurtbox, Team};
 
 #[derive(Bundle)]
 pub struct ShopkeeperBundle {
@@ -18,7 +18,8 @@ impl ShopkeeperBundle {
             },
             hurtbox: Hurtbox {
                 size: Vec2::new(30.0, 50.0),
-                health: 1,
+                health: 50,
+                team: Team::Enemy,
             },
             sprite: SpriteBundle {
                 material: materials.add(Color::rgb(1.0, 0.0, 0.0).into()),

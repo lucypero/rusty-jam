@@ -4,7 +4,7 @@ mod skeleton;
 mod shopkeeper;
 mod mouse;
 
-use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, HitBoxEvent};
+use collision::{debug_hitboxes, debug_hurtboxes, take_damage, player_take_damage, die_system, HitBoxEvent, Hurtbox};
 use player::{player_system, Player, PlayerBundle};
 use skeleton::{skeleton_system, SkeletonBundle};
 use shopkeeper::{shopkeeper_system, ShopkeeperBundle};
@@ -37,7 +37,7 @@ fn main() {
                 .with_system(player_system.system().label("actions").after("input"))
                 .with_system(skeleton_system.system().label("actions"))
                 .with_system(shopkeeper_system.system().label("actions"))
-                .with_system(die.system().label("actions"))
+                .with_system(die_system.system().label("actions"))
                 .with_system(take_damage.system().after("actions"))
                 .with_system(player_take_damage.system().after("actions"))
                 .with_system(debug_hurtboxes.system().after("actions"))
@@ -51,11 +51,6 @@ fn main() {
 }
 
 pub struct MainCamera;
-
-pub struct Hurtbox {
-    pub size: Vec2,
-    health: u64,
-}
 
 fn setup(
     mut commands: Commands,
@@ -114,22 +109,6 @@ fn update_hud(player: Query<(&Hurtbox, &Player)>, mut text: Query<&mut Text>) {
                 100,
                 player.level()
             );
-        }
-    }
-}
-
-fn die(
-    mut commands: Commands,
-    entities: Query<(Entity, &Hurtbox)>,
-    mut player: Query<&mut Player>,
-) {
-    for (entity, Hurtbox { health, .. }) in entities.iter() {
-        if *health <= 0 {
-            commands.entity(entity).despawn_recursive();
-            if let Ok(mut player) = player.single_mut() {
-                player.exp += 100;
-                player.money += 200;
-            }
         }
     }
 }
